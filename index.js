@@ -43,6 +43,20 @@ app.post("/participants", async (req, res) => {
     console.log(e);
     mongoClient.close();
   }
+  res.sendStatus(201);
+});
+
+app.get("/participants", async (req, res) => {
+    try {
+        await mongoClient.connect();
+        database = mongoClient.db("bate-papo-uol");
+        const participants = await database.collection("participants").find({}).toArray();
+        res.send(participants);
+        mongoClient.close();
+    } catch(e) {
+        console.log(e);
+        mongoClient.close();
+    }
 });
 
 app.listen(5000);
