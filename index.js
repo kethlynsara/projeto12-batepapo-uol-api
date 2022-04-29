@@ -4,6 +4,7 @@ import cors from "cors";
 import Joi from "joi";
 import dotenv from "dotenv";
 import schema from "./src/validation.js";
+import dayjs from "dayjs";
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.post("/participants", async (req, res) => {
         return;
     } else {
         await database.collection("participants").insertOne({name, lastStatus: Date.now()});
+        await database.collection("messages").insertOne({from: name, to: "Todos", text: "entra na sala...", type: "status", time: dayjs().format("HH:MM:ss")});
     }
     mongoClient.close();
   } catch (e) {
