@@ -174,9 +174,41 @@ app.post("/status", async (req, res) => {
   }
 });
 
+app.delete("/messages/:id", async (req, res) => {
+  const user = req.headers.user;
+  const { id } = req.params;
+  try {
+    const message = await database.collection("messages").findOne({_id: new ObjectId(id)});
+    
+    if (!message) {
+      res.sendStatus(404);
+      return;
+    }
+
+    if (user !== message.from) {
+      res.sendStatus(401);
+      return;
+    }
+
+    await database.collection("messages").deleteOne({_id: new ObjectId(id)});
+  }catch(e) {
+    console.log("err delete message", e);
+  }
+});
+
+// async function findMessage(id) {
+//   try {
+//     const message = await database.collection("messages").findOne({_id: new ObjectId(id)});
+//     return message;
+//   }catch(e) {
+//     console.log("err delete message", e);
+//   }
+// }
+
 setInterval(async () => {
   try {
     const participants = await database.collection("participants").find({}).toArray();
+    
     for (let i = 0; i < participants.length; i++) {
       const updateStatus = Date.now();
 
