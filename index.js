@@ -16,7 +16,7 @@ const mongoClient = new MongoClient(process.env.MONGO_URL);
 let database = null;
 const promise = mongoClient.connect();
 promise.then(() => {
-    database = mongoClient.db("bate-papo-uol");
+  database = mongoClient.db("bate-papo-uol");
 });
 promise.catch((e) => console.log(e));
 
@@ -24,7 +24,7 @@ app.post("/participants", async (req, res) => {
   const { name } = req.body;
 
   const schemaName = Joi.object({
-    name: Joi.string().alphanum().required()
+    name: Joi.string().alphanum().required(),
   });
 
   const validateName = schemaName.validate({ name });
@@ -35,20 +35,22 @@ app.post("/participants", async (req, res) => {
   }
 
   try {
-     const user = await database.collection("participants").findOne({ name });
+    const user = await database.collection("participants").findOne({ name });
 
     if (user) {
       res.sendStatus(409);
       return;
     } else {
-      await database.collection("participants").insertOne({ name, lastStatus: Date.now() });
+      await database
+        .collection("participants")
+        .insertOne({ name, lastStatus: Date.now() });
       await database.collection("messages").insertOne({
-          from: name,
-          to: "Todos",
-          text: "entra na sala...",
-          type: "status",
-          time: dayjs().format("HH:MM:ss"),
-        });
+        from: name,
+        to: "Todos",
+        text: "entra na sala...",
+        type: "status",
+        time: dayjs().format("HH:MM:ss"),
+      });
     }
   } catch (e) {
     console.log(e);
@@ -58,7 +60,10 @@ app.post("/participants", async (req, res) => {
 
 app.get("/participants", async (req, res) => {
   try {
-    const participants = await database.collection("participants").find({}).toArray();
+    const participants = await database
+      .collection("participants")
+      .find({})
+      .toArray();
     res.send(participants);
   } catch (e) {
     console.log(e);
@@ -72,10 +77,13 @@ app.post("/messages", async (req, res) => {
   const schemaMessage = Joi.object({
     to: Joi.string().required(),
     text: Joi.string().required(),
-    type: Joi.string().allow('message', 'private_message') 
+    type: Joi.string().allow("message", "private_message"),
   });
 
-  const validateMessage = schemaMessage.validate({to, text, type}, { abortEarly: false });
+  const validateMessage = schemaMessage.validate(
+    { to, text, type },
+    { abortEarly: false }
+  );
 
   if (validateMessage.error) {
     res.sendStatus(422);
@@ -83,8 +91,10 @@ app.post("/messages", async (req, res) => {
   }
 
   try {
-    const person = await database.collection("participants").findOne({name: user});
-    
+    const person = await database
+      .collection("participants")
+      .findOne({ name: user });
+
     if (!person) {
       res.sendStatus(422);
       return;
@@ -105,19 +115,41 @@ app.post("/messages", async (req, res) => {
 
 app.get("/messages", async (req, res) => {
   const limit = parseInt(req.query.limit);
-  console.log(limit)
+  const user = req.headers.user;
+
+  console.log(limit);
   try {
     const messages = await database.collection("messages").find({}).toArray();
+    // for (let i = 0; i < messages.length; i++) {
+    //   //console.log("message", messages[i]);
+    //   if (messages[i].type === "private_message" && (messages[i].to === user || messages[i].from === user)) {
+    //     aux.push(messages);
+    //   }
+    //   if (messages[i].type === "message") {
+    //     aux.push(messages);
+    //   }
+    // }
+    // aux = messages.map((message) => {
+    //   if (message.type === 'private_message' && (message.to === user || message.from === user)) {
+    //       aux.push(message);
+    //   }
+    //   if (message.type === 'message') {
+    //       aux.push(message);
+    //   }
+    //   console.log("message", message);
+    //   aux.push(message)
+    // });
     if (limit) {
-      const lastMessages = messages.slice(-limit);
-      res.send(lastMessages);
+      const lastMessages = messages.reverse().splice(0, limit);
+      console.log("last", lastMessages);
+      res.send(lastMessages.reverse());
       return;
     } else {
-      res.send(messages); 
+      res.send(messages);
     }
-  } catch(e) {
+  } catch (e) {
     console.log("erro ao buscar msgs", e);
   }
-})
+});
 
 app.listen(5000);
