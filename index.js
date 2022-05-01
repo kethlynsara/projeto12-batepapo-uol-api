@@ -104,9 +104,17 @@ app.post("/messages", async (req, res) => {
 });
 
 app.get("/messages", async (req, res) => {
+  const limit = parseInt(req.query.limit);
+  console.log(limit)
   try {
     const messages = await database.collection("messages").find({}).toArray();
-    res.send(messages); 
+    if (limit) {
+      const lastMessages = messages.slice(-limit);
+      res.send(lastMessages);
+      return;
+    } else {
+      res.send(messages); 
+    }
   } catch(e) {
     console.log("erro ao buscar msgs", e);
   }
