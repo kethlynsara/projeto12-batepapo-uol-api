@@ -116,20 +116,23 @@ app.post("/messages", async (req, res) => {
 app.get("/messages", async (req, res) => {
   const limit = parseInt(req.query.limit);
   const user = req.headers.user;
-  const aux = []; 
+  const aux = [];
   try {
     const messages = await database.collection("messages").find({}).toArray();
 
-    for (let i = 0; i < messages.length; i++) { 
-      if (messages[i].type === "private_message" && (messages[i].to === user || messages[i].from === user)) {
+    for (let i = 0; i < messages.length; i++) {
+      if (
+        messages[i].type === "private_message" &&
+        (messages[i].to === user || messages[i].from === user)
+      ) {
         aux.push(messages[i]);
       }
       if (messages[i].type === "message" || messages[i].type === "status") {
         aux.push(messages[i]);
       }
     }
- 
-    if (limit) { 
+
+    if (limit) {
       const lastMessages = aux.reverse().splice(0, limit);
       res.send(lastMessages.reverse());
       return;
@@ -145,39 +148,50 @@ app.post("/status", async (req, res) => {
   const user = req.headers.user;
 
   try {
-    const participant = await database.collection("participants").findOne({name: user});
+    const participant = await database
+      .collection("participants")
+      .findOne({ name: user });
 
     if (!participant) {
       res.sendStatus(404);
       return;
     }
 
-    await database.collection("/messages").updateOne({
-      name: user
-    },
-    {
-      $set: {
-        lastStatus: Date.now()
+    await database.collection("/messages").updateOne(
+      {
+        name: user,
+      },
+      {
+        $set: {
+          lastStatus: Date.now(),
+        },
       }
-    });
+    );
 
     res.sendStatus(200);
-  } catch(e) {
-    console.log("err status", e)
+  } catch (e) {
+    console.log("err status", e);
   }
 });
 
-setInterval( async() => {
+setInterval(async () => {
   try {
     const participants = await database.collection("participants").find({}).toArray();
     for (let i = 0; i < participants.length; i++) {
       const updateStatus = Date.now();
 
-      if (participants[i].lastStatus < (updateStatus - 10000)) {
-        await database.collection("participants").deleteOne({_id: new ObjectId(participants[i]._id) });
-      }            
+      if (participants[i].lastStatus < updateStatus - 10000) {
+        await database.collection("participants").deleteOne({ _id: new ObjectId(participants[i]._id) });
+        await database.collection("messages").insertOne({
+          from: participants[i].name,
+          to: "Todos",
+          text: "sai da sala...",
+          type: "status",
+          time: dayjs().format("HH:MM:ss")
+        });
+      }
     }
-  }catch(e) {
+  } catch (e) {
     console.log("erro setInterval", e);
   }
 }, 15000);
