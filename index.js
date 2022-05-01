@@ -116,11 +116,11 @@ app.post("/messages", async (req, res) => {
 app.get("/messages", async (req, res) => {
   const limit = parseInt(req.query.limit);
   const user = req.headers.user;
-  const aux = [];
+  const aux = []; 
   try {
     const messages = await database.collection("messages").find({}).toArray();
 
-    for (let i = 0; i < messages.length; i++) {
+    for (let i = 0; i < messages.length; i++) { 
       if (messages[i].type === "private_message" && (messages[i].to === user || messages[i].from === user)) {
         aux.push(messages[i]);
       }
@@ -129,7 +129,7 @@ app.get("/messages", async (req, res) => {
       }
     }
  
-    if (limit) {
+    if (limit) { 
       const lastMessages = aux.reverse().splice(0, limit);
       res.send(lastMessages.reverse());
       return;
@@ -140,5 +140,9 @@ app.get("/messages", async (req, res) => {
     console.log("erro ao buscar msgs", e);
   }
 });
+
+app.post("/status", (req, res) => {
+  const user = req.headers.user;
+})
 
 app.listen(5000);
