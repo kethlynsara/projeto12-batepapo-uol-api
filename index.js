@@ -3,7 +3,6 @@ import express from "express";
 import cors from "cors";
 import Joi from "joi";
 import dotenv from "dotenv";
-import schema from "./src/validation.js";
 import dayjs from "dayjs";
 
 const app = express();
@@ -24,7 +23,11 @@ promise.catch((e) => console.log(e));
 app.post("/participants", async (req, res) => {
   const { name } = req.body;
 
-  const validateName = schema.validate({ name });
+  const schemaName = Joi.object({
+    name: Joi.string().alphanum().required()
+  });
+
+  const validateName = schemaName.validate({ name });
 
   if (validateName.error) {
     res.sendStatus(422);
@@ -65,9 +68,30 @@ app.get("/participants", async (req, res) => {
 app.post("/messages", async (req, res) => {
   const { to, text, type } = req.body;
   const user = req.headers.user;
+
+  const schemaMessage = Joi.object({
+    to: Joi.string().required(),
+    text: Joi.string().required(),
+    type: Joi.string().allow('message', 'private_message') 
+  });
+
+  const validateMessage = schemaMessage.validate({to, text, type}, { abortEarly: false });
+
+  if (validateMessage.error) {
+    res.sendStatus(422);
+    return;
+  }
+
   try {
+    const person = await database.collection("participants").findOne({name: user});
+    
+    if (!person) {
+      res.sendStatus(422);
+      return;
+    }
+
     await database.collection("messages").insertOne({
-      from: user,
+      from: person.name,
       to,
       text,
       type,
