@@ -116,36 +116,25 @@ app.post("/messages", async (req, res) => {
 app.get("/messages", async (req, res) => {
   const limit = parseInt(req.query.limit);
   const user = req.headers.user;
-
-  console.log(limit);
+  const aux = [];
   try {
     const messages = await database.collection("messages").find({}).toArray();
-    // for (let i = 0; i < messages.length; i++) {
-    //   //console.log("message", messages[i]);
-    //   if (messages[i].type === "private_message" && (messages[i].to === user || messages[i].from === user)) {
-    //     aux.push(messages);
-    //   }
-    //   if (messages[i].type === "message") {
-    //     aux.push(messages);
-    //   }
-    // }
-    // aux = messages.map((message) => {
-    //   if (message.type === 'private_message' && (message.to === user || message.from === user)) {
-    //       aux.push(message);
-    //   }
-    //   if (message.type === 'message') {
-    //       aux.push(message);
-    //   }
-    //   console.log("message", message);
-    //   aux.push(message)
-    // });
+
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].type === "private_message" && (messages[i].to === user || messages[i].from === user)) {
+        aux.push(messages[i]);
+      }
+      if (messages[i].type === "message" || messages[i].type === "status") {
+        aux.push(messages[i]);
+      }
+    }
+ 
     if (limit) {
-      const lastMessages = messages.reverse().splice(0, limit);
-      console.log("last", lastMessages);
+      const lastMessages = aux.reverse().splice(0, limit);
       res.send(lastMessages.reverse());
       return;
     } else {
-      res.send(messages);
+      res.send(aux);
     }
   } catch (e) {
     console.log("erro ao buscar msgs", e);
