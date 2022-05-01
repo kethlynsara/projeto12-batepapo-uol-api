@@ -12,8 +12,14 @@ app.use(cors());
 app.use(express.json());
 
 dotenv.config();
+
 const mongoClient = new MongoClient(process.env.MONGO_URL);
 let database = null;
+const promise = mongoClient.connect();
+promise.then(() => {
+    database = mongoClient.db("bate-papo-uol");
+});
+promise.catch((e) => console.log(e));
 
 app.post("/participants", async (req, res) => {
   const { name } = req.body;
@@ -26,10 +32,7 @@ app.post("/participants", async (req, res) => {
   }
 
   try {
-    await mongoClient.connect();
-    database = mongoClient.db("bate-papo-uol");
-
-    const user = await database.collection("participants").findOne({ name });
+     const user = await database.collection("participants").findOne({ name });
 
     if (user) {
       res.sendStatus(409);
@@ -44,24 +47,18 @@ app.post("/participants", async (req, res) => {
           time: dayjs().format("HH:MM:ss"),
         });
     }
-    mongoClient.close();
   } catch (e) {
     console.log(e);
-    mongoClient.close();
   }
   res.sendStatus(201);
 });
 
 app.get("/participants", async (req, res) => {
   try {
-    await mongoClient.connect();
-    database = mongoClient.db("bate-papo-uol");
     const participants = await database.collection("participants").find({}).toArray();
     res.send(participants);
-    mongoClient.close();
   } catch (e) {
     console.log(e);
-    mongoClient.close();
   }
 });
 
@@ -69,8 +66,6 @@ app.post("/messages", async (req, res) => {
   const { to, text, type } = req.body;
   const user = req.headers.user;
   try {
-    await mongoClient.connect();
-    database = mongoClient.db("bate-papo-uol");
     await database.collection("messages").insertOne({
       from: user,
       to,
@@ -79,10 +74,8 @@ app.post("/messages", async (req, res) => {
       time: dayjs().format("HH:MM:ss"),
     });
     res.sendStatus(201);
-    mongoClient.close();
   } catch (e) {
     console.log("err post message", e);
-    mongoClient.close();
   }
 });
 
