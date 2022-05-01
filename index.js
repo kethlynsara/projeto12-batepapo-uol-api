@@ -141,8 +141,22 @@ app.get("/messages", async (req, res) => {
   }
 });
 
-app.post("/status", (req, res) => {
+app.post("/status", async (req, res) => {
   const user = req.headers.user;
+
+  try {
+    const participant = await database.collection("participants").findOne({name: user});
+    console.log(participant)
+
+    if (!participant) {
+      res.sendStatus(404);
+      return;
+    }
+
+    res.sendStatus(200);
+  } catch(e) {
+    console.log("err status", e)
+  }
 })
 
 app.listen(5000);
