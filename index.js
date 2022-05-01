@@ -103,4 +103,13 @@ app.post("/messages", async (req, res) => {
   }
 });
 
+app.get("/messages", async (req, res) => {
+  try {
+    const messages = await database.collection("messages").find({}).toArray();
+    res.send(messages); 
+  } catch(e) {
+    console.log("erro ao buscar msgs", e);
+  }
+})
+
 app.listen(5000);
