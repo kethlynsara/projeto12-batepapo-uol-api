@@ -146,12 +146,20 @@ app.post("/status", async (req, res) => {
 
   try {
     const participant = await database.collection("participants").findOne({name: user});
-    console.log(participant)
 
     if (!participant) {
       res.sendStatus(404);
       return;
     }
+
+    await database.collection("/messages").updateOne({
+      name: user
+    },
+    {
+      $set: {
+        lastStatus: Date.now()
+      }
+    });
 
     res.sendStatus(200);
   } catch(e) {
