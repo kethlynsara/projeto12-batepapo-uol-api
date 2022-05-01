@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import express from "express";
 import cors from "cors";
 import Joi from "joi";
@@ -165,6 +165,21 @@ app.post("/status", async (req, res) => {
   } catch(e) {
     console.log("err status", e)
   }
-})
+});
+
+setInterval( async() => {
+  try {
+    const participants = await database.collection("participants").find({}).toArray();
+    for (let i = 0; i < participants.length; i++) {
+      const updateStatus = Date.now();
+
+      if (participants[i].lastStatus < (updateStatus - 10000)) {
+        await database.collection("participants").deleteOne({_id: new ObjectId(participants[i]._id) });
+      }            
+    }
+  }catch(e) {
+    console.log("erro setInterval", e);
+  }
+}, 15000);
 
 app.listen(5000);
