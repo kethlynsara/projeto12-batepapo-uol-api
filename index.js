@@ -49,7 +49,7 @@ app.post("/participants", async (req, res) => {
         to: "Todos",
         text: "entra na sala...",
         type: "status",
-        time: dayjs().format("HH:MM:ss"),
+        time: dayjs().format("HH:mm:ss"),
       });
     }
   } catch (e) {
@@ -105,11 +105,11 @@ app.post("/messages", async (req, res) => {
       to,
       text,
       type,
-      time: dayjs().format("HH:MM:ss"),
+      time: dayjs().format("HH:mm:ss"),
     });
     res.sendStatus(201);
   } catch (e) {
-    console.log("err post message", e);
+    console.log(e);
   }
 });
 
@@ -140,7 +140,7 @@ app.get("/messages", async (req, res) => {
       res.send(aux);
     }
   } catch (e) {
-    console.log("erro ao buscar msgs", e);
+    console.log(e);
   }
 });
 
@@ -157,7 +157,7 @@ app.post("/status", async (req, res) => {
       return;
     }
 
-    await database.collection("/messages").updateOne(
+    await database.collection("/participants").updateOne(
       {
         name: user,
       },
@@ -170,7 +170,7 @@ app.post("/status", async (req, res) => {
 
     res.sendStatus(200);
   } catch (e) {
-    console.log("err status", e);
+    console.log(e);
   }
 });
 
@@ -178,8 +178,10 @@ app.delete("/messages/:id", async (req, res) => {
   const user = req.headers.user;
   const { id } = req.params;
   try {
-    const message = await database.collection("messages").findOne({_id: new ObjectId(id)});
-    
+    const message = await database
+      .collection("messages")
+      .findOne({ _id: new ObjectId(id) });
+
     if (!message) {
       res.sendStatus(404);
       return;
@@ -190,41 +192,91 @@ app.delete("/messages/:id", async (req, res) => {
       return;
     }
 
-    await database.collection("messages").deleteOne({_id: new ObjectId(id)});
-  }catch(e) {
-    console.log("err delete message", e);
+    await database.collection("messages").deleteOne({ _id: new ObjectId(id) });
+  } catch (e) {
+    console.log(e);
   }
 });
 
-// async function findMessage(id) {
-//   try {
-//     const message = await database.collection("messages").findOne({_id: new ObjectId(id)});
-//     return message;
-//   }catch(e) {
-//     console.log("err delete message", e);
-//   }
-// }
+app.put("/messages/:id", async (req, res) => {
+  const user = req.headers.user;
+  const { id } = req.params;
+  const { to, text, type } = req.body;
+
+  const schema = Joi.object({
+    to: Joi.string().required(),
+    text: Joi.string().required(),
+    type: Joi.string().allow("message", "private_message"),
+  });
+
+  const validateMessage = schema.validate(
+    { to, text, type },
+    { abortEarly: false }
+  );
+
+  if (validateMessage.error) {
+    res.sendStatus(422);
+    return;
+  }
+
+  try {
+    const person = await database
+      .collection("participants")
+      .findOne({ name: user });
+
+    if (!person) {
+      res.sendStatus(422);
+      return;
+    }
+
+    const message = await database
+      .collection("messages")
+      .findOne({ _id: new ObjectId(id) });
+
+    if (!message) {
+      res.sendStatus(404);
+      return;
+    }
+
+    if (user !== message.from) {
+      res.sendStatus(401);
+      return;
+    }
+
+    await database.collection("messages").updateOne(
+      {
+        _id: message._id,
+      },
+      { $set: { to, text, type } }
+    );
+  } catch (e) {
+    console.log(e);
+  }
+});
 
 setInterval(async () => {
   try {
-    const participants = await database.collection("participants").find({}).toArray();
-    
+    const participants = await database
+      .collection("participants")
+      .find({})
+      .toArray();
+    const updateStatus = Date.now();
     for (let i = 0; i < participants.length; i++) {
-      const updateStatus = Date.now();
-
-      if (participants[i].lastStatus < updateStatus - 10000) {
-        await database.collection("participants").deleteOne({ _id: new ObjectId(participants[i]._id) });
+      if (updateStatus - participants[i].lastStatus > 10000) {
+        await database
+          .collection("participants")
+          .deleteOne({ _id: new ObjectId(participants[i]._id) });
         await database.collection("messages").insertOne({
           from: participants[i].name,
           to: "Todos",
           text: "sai da sala...",
           type: "status",
-          time: dayjs().format("HH:MM:ss")
+          time: dayjs().format("HH:mm:ss"),
         });
       }
     }
   } catch (e) {
-    console.log("erro setInterval", e);
+    console.log(e);
   }
 }, 15000);
 
