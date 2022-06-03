@@ -26,7 +26,9 @@ git clone https://github.com/kethlynsara/projeto12-batepapo-uol-api.git
 ```bash
 npm i
 ```
-3. Run the application
+3. Connect to database: add DATABASE_URL and PORT on the file `.env`
+
+4. Run the application
 ```bash
 node index.js
 ```
